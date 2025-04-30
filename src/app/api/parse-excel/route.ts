@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
             
             // First try: Look for headers with "As per Schedule" in the same row
             let tempHeaderRowIndex = -1;
-            let tempColumnIndices: Record<string, string> = {};
+            const tempColumnIndices: Record<string, string> = {};
             
             // Look for header row containing expected column names
             for (let i = 0; i < Math.min(50, sheetData.length); i++) {
@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
               const nextRow = sheetData[i + 1];
               
               // First find column titles (Engineering Approval Date, etc.)
-              let mainColumns: Record<string, string> = {};
+              const mainColumns: Record<string, string> = {};
               let foundMainColumns = 0;
               
               for (const [col, value] of Object.entries(row)) {

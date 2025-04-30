@@ -8,8 +8,29 @@ export interface UploadedFile {
   id: string;
   status?: 'pending' | 'uploading' | 'success' | 'error';
   error?: string;
-  parsedData?: any;
+  parsedData?: ParsedData[];
   sheetName?: string;
+}
+
+interface ParsedData {
+  poSlNo: string | null;
+  itemDescription: string | null;
+  engineeringApprovalDate: string | null;
+  procurementStartDate: string | null;
+  deliveryAtSite: string | null;
+}
+
+interface FileResult {
+  fileName: string;
+  success: boolean;
+  error?: string;
+  data?: ParsedData[];
+  sheetName?: string;
+}
+
+interface ApiResponse {
+  message: string;
+  files: FileResult[];
 }
 
 // Function to convert Excel date serial number to JS Date
@@ -66,7 +87,7 @@ export default function FileUpload() {
   const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [parsedResults, setParsedResults] = useState<any | null>(null);
+  const [parsedResults, setParsedResults] = useState<ApiResponse | null>(null);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setError(null);
@@ -138,16 +159,16 @@ export default function FileUpload() {
       setUploadProgress(100);
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json() as { error: string };
         throw new Error(errorData.error || 'Upload failed');
       }
 
-      const result = await response.json();
+      const result = await response.json() as ApiResponse;
       
       // Update file statuses based on results
       setFiles(prev => 
         prev.map(fileObj => {
-          const fileResult = result.files.find((r: any) => r.fileName === fileObj.file.name);
+          const fileResult = result.files.find((r) => r.fileName === fileObj.file.name);
           return {
             ...fileObj,
             status: fileResult?.success ? 'success' : 'error',
@@ -163,8 +184,9 @@ export default function FileUpload() {
       
       // Show success message
       console.log('Upload successful:', result);
-    } catch (err: any) {
-      setError(err.message || 'Failed to upload files');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to upload files';
+      setError(errorMessage);
       
       // Mark all as error
       setFiles(prev => 
@@ -350,7 +372,7 @@ export default function FileUpload() {
           </div>
           
           <div className="overflow-x-auto">
-            {parsedResults.files.map((fileResult: any, fileIndex: number) => (
+            {parsedResults.files.map((fileResult, fileIndex) => (
               fileResult.success && fileResult.data && fileResult.data.length > 0 ? (
                 <div key={fileIndex} className="p-4 border-b border-gray-200">
                   <h3 className="text-lg font-medium text-gray-700 mb-2">
@@ -376,7 +398,7 @@ export default function FileUpload() {
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {fileResult.data.map((item: any, index: number) => {
+                        {fileResult.data.map((item, index) => {
                           // Calculate delays
                           const engDelay = calculateDelay(item.engineeringApprovalDate);
                           const procDelay = calculateDelay(item.procurementStartDate);
